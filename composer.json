@@ -1,0 +1,52 @@
+{
+    "name": "raoptimus/yii2-openstack",
+    "description": "Openstack/swift client for Yii2 Framework",
+    "type": "yii2-extension",
+    "keywords": [
+        "yii2",
+        "yii 2",
+        "yii2-extension",
+        "yii2-openstack",
+        "yii2 openstack",
+        "yii2-swift",
+        "yii2 swift",
+        "php"
+    ],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Evgeniy Urvantsev",
+            "email": "resmus@gmail.com",
+            "homepage": "https://github.com/raoptimus"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/raoptimus/yii2-openstack/issues",
+        "source": "https://github.com/raoptimus/yii2-openstack"
+    },
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=7.1.0",
+        "yiisoft/yii2": "^2.0.14",
+        "guzzlehttp/guzzle": "5.3.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "7.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "raoptimus\\openstack\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "raoptimus\\openstack\\tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ]
+}
