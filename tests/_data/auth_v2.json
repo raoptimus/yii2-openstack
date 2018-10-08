@@ -1,0 +1,50 @@
+{
+    "access": {
+        "token": {
+            "id": "AUTH_tk4602560647c640de86924e2f28716b46",
+            "expires": "2015-01-22T00:04:06Z",
+            "tenant": {
+                "id": "AUTH_sharedacct",
+                "name": "AUTH_sharedacct"
+            }
+        },
+        "user": {
+            "name": "alice",
+            "id": "alice",
+            "roles": [
+                {
+                    "id": "alice",
+                    "name": "alice"
+                },
+                {
+                    "name": "AUTH_alice",
+                    "id": "AUTH_alice"
+                },
+                {
+                    "name": ".reseller_admin",
+                    "id": ".reseller_admin"
+                }
+            ]
+        },
+        "serviceCatalog": [
+            {
+                "endpoints": [
+                    {
+                        "publicURL": "http://localhost.loc/v1/AUTH_sharedacct",
+                        "region": "default",
+                        "tenantId": "AUTH_sharedacct",
+                        "versionId": 1
+                    },
+                    {
+                        "publicURL": "http://localhost.loc/v1/AUTH_alice",
+                        "region": "default",
+                        "tenantId": "AUTH_alice",
+                        "versionId": 1
+                    }
+                ],
+                "name": "Swift Object Storage",
+                "type": "object-store"
+            }
+        ]
+    }
+}

@@ -21,18 +21,18 @@ use yii\base\Component;
  */
 class File extends Component
 {
-    private static $_objectErrorMap = [
-        '400' => 'Bad Request',
-        '403' => 'Operation forbidden',
-        '404' => 'Object Not Found',
-        '413' => 'Too Large Object',
-        '422' => 'Object Corrupted',
+    private const OBJECT_ERROR_MAP = [
+        HttpCode::BAD_REQUEST => HttpCode::CODE_DESC_MAP[HttpCode::BAD_REQUEST],
+        HttpCode::FORBIDDEN => HttpCode::CODE_DESC_MAP[HttpCode::FORBIDDEN],
+        HttpCode::NOT_FOUND => 'Object Not Found',
+        HttpCode::REQUEST_ENTITY_TOO_LARGE => 'Too Large Object',
+        HttpCode::UNPROCESSABLE_ENTITY => 'Object Corrupted',
     ];
 
     private static function getFileHandler($file, bool $isRead = true)
     {
         if (is_string($file)) {
-            return fopen($file, $isRead ? 'r' : 'w');
+            return fopen($file, $isRead ? 'rb' : 'wb');
         }
 
         if (is_resource($file)) {
@@ -53,7 +53,7 @@ class File extends Component
         try {
             $this->connection->call($this->getRequestOpts('DELETE', $headers));
         } catch (SwiftException $ex) {
-            if ($ex->getCode() === 404) {
+            if ($ex->getCode() === HttpCode::NOT_FOUND) {
                 return true; //already removed
             }
             throw $ex;
@@ -62,7 +62,7 @@ class File extends Component
         return true;
     }
 
-    public function copy($dstFilename, $dstContainerName = null, array $headers = null)
+    public function copy($dstFilename, $dstContainerName = null, array $headers = null): File
     {
         $headers = array_merge(
             $headers ?? [],
@@ -96,7 +96,7 @@ class File extends Component
      *
      * @throws SwiftException
      */
-    public function update(?array $headers = null)
+    public function update(?array $headers = null): void
     {
         $this->connection->call($this->getRequestOpts('POST', $headers));
     }
@@ -122,12 +122,20 @@ class File extends Component
 
         if ($hash !== $this->hash) {
             unlink($targetFilename);
-            throw new SwiftException(self::$_objectErrorMap[422] . ' / hash isn\'t valid', 422);
+            throw new SwiftException(
+                HttpCode::getDescription(HttpCode::UNPROCESSABLE_ENTITY) .
+                ' / hash isn\'t valid',
+                HttpCode::UNPROCESSABLE_ENTITY
+            );
         }
 
         if ($this->mimeType !== $type) {
             unlink($targetFilename);
-            throw new SwiftException(self::$_objectErrorMap[422] . ' / type isn\'t valid', 422);
+            throw new SwiftException(
+                HttpCode::getDescription(HttpCode::UNPROCESSABLE_ENTITY) .
+                ' / type isn\'t valid',
+                HttpCode::UNPROCESSABLE_ENTITY
+            );
         }
 
         return $this;
@@ -139,7 +147,7 @@ class File extends Component
      *
      * @return File
      */
-    public function push($sourceFilename, array $headers = null): File
+    public function push($sourceFilename, ?array $headers = null): File
     {
         $fs = self::getFileHandler($sourceFilename);
         //$path = stream_get_meta_data($fs)['uri'];
@@ -154,7 +162,7 @@ class File extends Component
             'Content-Length' => $size,
             'Etag' => $hash,
         ];
-        $headers = array_merge($headers, $extraHeaders);
+        $headers = array_merge($headers ?? [], $extraHeaders);
         $opts = $this->getRequestOpts('PUT', $headers);
         $opts->body = $fs;
         $this->connection->call($opts);
@@ -165,7 +173,7 @@ class File extends Component
         return $this;
     }
 
-    public function pullStat(array $headers = null): File
+    public function pullStat(?array $headers = null): File
     {
         try {
             $resp = $this->connection->call($this->getRequestOpts('HEAD', $headers));
@@ -174,14 +182,14 @@ class File extends Component
 
             return $this;
         } catch (SwiftException $ex) {
-            if ($ex->getCode() == 404) {
+            if ($ex->getCode() === HttpCode::NOT_FOUND) {
                 return null;
             }
             throw $ex;
         }
     }
 
-    public function asArray()
+    public function asArray(): array
     {
         return [
             'name' => $this->name,
@@ -192,47 +200,47 @@ class File extends Component
         ];
     }
 
-    protected function setName(string $name)
+    protected function setName(string $name): void
     {
         $this->name = $name;
     }
 
-    protected function setHash(string $v)
+    protected function setHash(string $v): void
     {
         $this->hash = $v;
     }
 
-    protected function setMimeType(string $v)
+    protected function setMimeType(string $v): void
     {
         $this->mimeType = $v;
     }
 
-    protected function setLastModified(\DateTime $v)
+    protected function setLastModified(\DateTime $v): void
     {
         $this->lastModified = $v;
     }
 
-    protected function setCreatedAt(\DateTime $v)
+    protected function setCreatedAt(\DateTime $v): void
     {
         $this->createdAt = $v;
     }
 
-    protected function setSize(int $v)
+    protected function setSize(int $v): void
     {
         $this->size = $v;
     }
 
-    protected function setConnection(Connection $c)
+    protected function setConnection(Connection $c): void
     {
         $this->connection = $c;
     }
 
-    protected function setContainer(Container $c)
+    protected function setContainer(Container $c): void
     {
         $this->container = $c;
     }
 
-    private function parseHeaders(array $h)
+    private function parseHeaders(array $h): void
     {
         $this->hash = $h['Etag'][0];
         $this->lastModified = new \DateTime($h['Last-Modified'][0]);
@@ -249,7 +257,7 @@ class File extends Component
                 'container' => $this->container->name,
                 'objectName' => $this->name,
                 'headers' => $headers,
-                'errorMap' => self::$_objectErrorMap,
+                'errorMap' => self::OBJECT_ERROR_MAP,
             ]
         );
     }

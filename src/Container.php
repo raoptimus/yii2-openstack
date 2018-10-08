@@ -2,6 +2,7 @@
 namespace raoptimus\openstack;
 
 use yii\base\Component;
+use yii\helpers\Json;
 
 /**
  * This file is part of the raoptimus/yii2-openstack library
@@ -18,13 +19,22 @@ use yii\base\Component;
 class Container extends Component
 {
     private const CONTAINER_ERROR_MAP = [
-        400 => 'Bad Request',
-        403 => 'Operation forbidden',
-        404 => 'Container not found',
-        409 => 'Container is not empty',
+        HttpCode::BAD_REQUEST => HttpCode::CODE_DESC_MAP[HttpCode::BAD_REQUEST],
+        HttpCode::FORBIDDEN => HttpCode::CODE_DESC_MAP[HttpCode::FORBIDDEN],
+        HttpCode::NOT_FOUND => 'Container not found',
+        HttpCode::CONFLICT => 'Container is not empty',
     ];
+    /**
+     * @var bool
+     */
     private $loaded;
+    /**
+     * @var int
+     */
     private $internalBytes;
+    /**
+     * @var int
+     */
     private $internalCount;
 
     public function __construct(array $config)
@@ -35,7 +45,7 @@ class Container extends Component
         parent::__construct($config);
     }
 
-    public function getBytes()
+    public function getBytes(): int
     {
         if (!$this->loaded) {
             $this->loadStat();
@@ -44,7 +54,7 @@ class Container extends Component
         return $this->internalBytes;
     }
 
-    public function getCount()
+    public function getCount(): int
     {
         if (!$this->loaded) {
             $this->loadStat();
@@ -67,7 +77,12 @@ class Container extends Component
         return $this;
     }
 
-    public function all(?array $headers = null)
+    /**
+     * @param array|null $headers
+     *
+     * @return Container[] map containers [name => Container...]
+     */
+    public function all(?array $headers = null): array
     {
         $containers = [];
         $opts = new RequestOpts(
@@ -79,7 +94,7 @@ class Container extends Component
             ]
         );
         $resp = $this->connection->call($opts);
-        $items = json_decode($resp->getBody()->getContents(), true);
+        $items = Json::decode($resp->getBody()->getContents(), true);
 
         foreach ($items as $item) {
             $item['connection'] = $this->connection;
@@ -170,27 +185,27 @@ class Container extends Component
         ))->delete($headers);
     }
 
-    protected function setBytes($v)
+    protected function setBytes($v): void
     {
         $this->internalBytes = $v;
     }
 
-    protected function setCount($v)
+    protected function setCount($v): void
     {
         $this->internalCount = $v;
     }
 
-    protected function setName($v)
+    protected function setName($v): void
     {
         $this->name = $v;
     }
 
-    protected function setConnection(Connection $c)
+    protected function setConnection(Connection $c): void
     {
         $this->connection = $c;
     }
 
-    private function loadStat()
+    private function loadStat(): void
     {
         $resp = $this->connection->call($this->getRequestOpts('HEAD'));
         $h = $resp->getHeaders();

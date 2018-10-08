@@ -20,7 +20,10 @@ abstract class BaseAuth implements AuthInterface
             } else if (stripos($c->authUrl, 'v1') !== false) {
                 $c->authVersion = 1;
             } else {
-                throw new AuthException('Can\'t find AuthVersion in AuthUrl - set explicitly', 500);
+                throw new AuthException(
+                    'Can\'t find AuthVersion in AuthUrl - set explicitly',
+                    HttpCode::INTERNAL_SERVER_ERROR
+                );
             }
         }
 
@@ -32,7 +35,10 @@ abstract class BaseAuth implements AuthInterface
             case 3:
                 return new V3Auth();
             default:
-                throw new AuthException(sprintf('Auth Version %d not supported', $c->authVersion), 500);
+                throw new AuthException(
+                    sprintf('Auth Version %d not supported', $c->authVersion),
+                    HttpCode::INTERNAL_SERVER_ERROR
+                );
         }
     }
 }

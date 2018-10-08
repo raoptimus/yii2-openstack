@@ -15,12 +15,12 @@ use yii\base\Component;
  */
 class Connection extends Component
 {
-    private const DEFAULT_USERAGENT = 'phpswift/1.0';
+    private const DEFAULT_USERAGENT = 'github.com/raoptimus/yii2-openstack/1.0.1';
     private const DEFAULT_RETRIES = 3;
     private const AUTH_ERROR_MAP = [
-        400 => 'Bad Request',
-        401 => 'Authorization Failed',
-        403 => 'Operation forbidden',
+        HttpCode::BAD_REQUEST => HttpCode::CODE_DESC_MAP[HttpCode::BAD_REQUEST],
+        HttpCode::UNAUTHORIZED => HttpCode::CODE_DESC_MAP[HttpCode::UNAUTHORIZED],
+        HttpCode::FORBIDDEN => HttpCode::CODE_DESC_MAP[HttpCode::FORBIDDEN],
     ];
     /**
      * UserName for api
@@ -45,7 +45,7 @@ class Connection extends Component
      */
     public $retries = self::DEFAULT_RETRIES;
     /**
-     * Http User agent (default phpswift/1.0)
+     * Http User agent (default github.com/raoptimus/yii2-openstack/1.0.1)
      *
      * @var string
      */
@@ -113,33 +113,28 @@ class Connection extends Component
     /**
      * @var string
      */
-    private $_storageUrl;
+    protected $storageUrl;
     /**
      * @var string
      */
-    private $_authToken;
+    protected $authToken;
     /**
      * @var BaseAuth
      */
-    private $_auth;
+    protected $auth;
     /**
-     * @var \GuzzleHttp\Client
+     * @var Client
      */
-    private $_client;
+    protected $client;
     /**
      * @var Container[]
      */
-    private $_containers = [];
-
-    public function __construct(array $config)
-    {
-        parent::__construct($config);
-    }
+    protected $containers = [];
 
     public static function buildUrl(array $url): string
     {
         $q = empty($url['query']) ? '' : ('?' . $url['query']);
-        $p = $url['port'] ? ':' . $url['port'] : '';
+        $p = isset($url['port']) ? ':' . $url['port'] : '';
 
         return sprintf(
             '%s://%s%s%s%s',
@@ -151,6 +146,16 @@ class Connection extends Component
         );
     }
 
+    public function getStorageUrl(): ?string
+    {
+        return $this->storageUrl;
+    }
+
+    public function getAuthToken(): ?string
+    {
+        return $this->authToken;
+    }
+
     /**
      * @param $name string
      *
@@ -158,8 +163,8 @@ class Connection extends Component
      */
     public function getContainer($name): Container
     {
-        if (!isset($this->_containers[$name])) {
-            $this->_containers[$name] = new Container(
+        if (!isset($this->containers[$name])) {
+            $this->containers[$name] = new Container(
                 [
                     'connection' => $this,
                     'name' => $name,
@@ -167,7 +172,7 @@ class Connection extends Component
             );
         }
 
-        return $this->_containers[$name];
+        return $this->containers[$name];
     }
 
     /**
@@ -175,7 +180,7 @@ class Connection extends Component
      */
     public function getClient(): Client
     {
-        return $this->_client;
+        return $this->client;
     }
 
     /**
@@ -183,18 +188,18 @@ class Connection extends Component
      */
     public function getContainers(): array
     {
-        $this->_containers = (new Container(
+        $this->containers = (new Container(
             [
                 'connection' => $this,
             ]
         ))->all();
 
-        return array_values($this->_containers);
+        return array_values($this->containers);
     }
 
     public function authenticated(): bool
     {
-        return !empty($this->_storageUrl) && !empty($this->_authToken);
+        return !empty($this->getStorageUrl()) && !empty($this->getAuthToken());
     }
 
     /**
@@ -216,8 +221,8 @@ class Connection extends Component
                 $this->authenticate();
             }
 
-            $authToken = $this->_authToken;
-            $storageUrl = parse_url($this->_storageUrl);
+            $authToken = $this->getAuthToken();
+            $storageUrl = parse_url($this->getStorageUrl());
 
             if (!empty($opts->container)) {
                 $storageUrl['path'] = rtrim($storageUrl['path'], '/');
@@ -234,7 +239,7 @@ class Connection extends Component
 
             $storageUrl = self::buildUrl($storageUrl);
 
-            $req = $this->_client->createRequest(
+            $req = $this->getClient()->createRequest(
                 $opts->operation,
                 $storageUrl,
                 [
@@ -250,9 +255,9 @@ class Connection extends Component
             );
 
             try {
-                $resp = $this->_client->send($req);
+                $resp = $this->getClient()->send($req);
             } catch (RequestException $ex) {
-                if ($ex->getCode() === 401 && $retries - 1 > 0) {
+                if ($ex->getCode() === HttpCode::UNAUTHORIZED && $retries - 1 > 0) {
                     $this->unAuthenticate();
                     $retries--;
                     continue;
@@ -262,7 +267,7 @@ class Connection extends Component
                     continue;
                 }
                 $msg = $opts->errorMap[$ex->getCode()] ?? $ex->getMessage();
-                throw new SwiftException($msg, $ex->getCode());
+                throw new AuthException($msg, $ex->getCode());
             }
 
             break;
@@ -273,24 +278,20 @@ class Connection extends Component
         return $resp;
     }
 
-    /**
-     * @throws AuthException
-     * @throws SwiftException
-     */
-    public function authenticate()
+    public function authenticate(): void
     {
         $this->setDefaults();
 
-        if (!$this->_auth) {
-            $this->_auth = BaseAuth::create($this);
+        if (!$this->auth) {
+            $this->auth = BaseAuth::create($this);
         }
         $retries = 1;
         again:
-        $req = $this->_auth->getRequest($this);
+        $req = $this->auth->getRequest($this);
         try {
-            $resp = $this->_client->send($req);
+            $resp = $this->getClient()->send($req);
         } catch (RequestException $ex) {
-            if (in_array($ex->getCode(), [401, 400], true) && $retries > 0) {
+            if (in_array($ex->getCode(), [HttpCode::UNAUTHORIZED, HttpCode::BAD_REQUEST], true) && $retries > 0) {
                 $retries--;
                 goto again;
             }
@@ -298,30 +299,30 @@ class Connection extends Component
             throw new AuthException($msg, $ex->getCode());
         }
 
-        $this->checkStatusCode($resp->getStatusCode(), self::AUTH_ERROR_MAP);
+        $this->checkStatusCode($resp->getStatusCode(), self::AUTH_ERROR_MAP, AuthException::class);
 
-        $this->_auth->response($resp);
-        $this->_storageUrl = $this->_auth->getStorageUrl($this->internal);
-        $this->_authToken = $this->_auth->getToken();
+        $this->auth->processResponse($resp);
+        $this->storageUrl = $this->auth->getStorageUrl($this->internal);
+        $this->authToken = $this->auth->getToken();
 
         if (!$this->authenticated()) {
-            throw new AuthException('Response didn\'t have storage url and auth token');
+            throw new AuthException('Response haven`t got a storage url and auth token');
         }
     }
 
-    private function checkStatusCode(int $statusCode, array $errMap): bool//checkStatus
+    private function checkStatusCode(int $statusCode, array $errMap, string $exceptionClass = SwiftException::class): bool
     {
         if (isset($errMap[$statusCode])) {
-            throw new SwiftException($errMap[$statusCode], $statusCode);
+            throw new $exceptionClass($errMap[$statusCode], $statusCode);
         }
-        if ($statusCode < 200 || $statusCode > 299) {
-            throw new SwiftException(sprintf('HTTP Error: %d', $statusCode), $statusCode);
+        if ($statusCode < HttpCode::OK || $statusCode >= HttpCode::MULTIPLE_CHOICES) {
+            throw new $exceptionClass(sprintf('HTTP Error: %d', $statusCode), $statusCode);
         }
 
         return true;
     }
 
-    private function setDefaults()
+    private function setDefaults(): void
     {
         if (empty($this->userAgent)) {
             $this->userAgent = self::DEFAULT_USERAGENT;
@@ -344,8 +345,8 @@ class Connection extends Component
             $this->domainId = 'default';
         }
 
-        if (!$this->_client) {
-            $this->_client = new HttpClient(
+        if (!$this->getClient()) {
+            $this->client = new HttpClient(
                 [
                     'defaults' => [
                         'timeout' => $this->timeout,
@@ -359,9 +360,9 @@ class Connection extends Component
         }
     }
 
-    private function unAuthenticate()
+    private function unAuthenticate(): void
     {
-        $this->_storageUrl = '';
-        $this->_authToken = '';
+        $this->storageUrl = '';
+        $this->authToken = '';
     }
 }

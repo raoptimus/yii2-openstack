@@ -19,7 +19,7 @@ class V3Auth extends BaseAuth
         // TODO: Implement getRequest() method.
     }
 
-    public function response(ResponseInterface $resp): void
+    public function processResponse(ResponseInterface $resp): void
     {
         // TODO: Implement response() method.
     }

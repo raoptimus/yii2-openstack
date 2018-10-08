@@ -15,7 +15,7 @@ interface AuthInterface
 {
     public function getRequest(Connection $c): RequestInterface;
 
-    public function response(ResponseInterface $resp): void;
+    public function processResponse(ResponseInterface $resp): void;
 
     public function getStorageUrl(bool $internal): string;
 

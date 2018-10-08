@@ -27,10 +27,12 @@
     "minimum-stability": "dev",
     "require": {
         "php": ">=7.1.0",
+        "ext-fileinfo": "*",
         "yiisoft/yii2": "^2.0.14",
         "guzzlehttp/guzzle": "5.3.*"
     },
     "require-dev": {
+        "roave/security-advisories": "dev-master",
         "phpunit/phpunit": "7.*"
     },
     "autoload": {

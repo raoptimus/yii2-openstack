@@ -93,13 +93,11 @@ class V2Auth extends BaseAuth
         return $this->authResponse['access']['token']['id'];
     }
 
-    public function response(ResponseInterface $resp): void
+    public function processResponse(ResponseInterface $resp): void
     {
         $body = $resp->json();
 
-        if ($body &&
-            isset($body['access']['serviceCatalog'], $body['access']['token']['id'])
-        ) {
+        if ($body && isset($body['access']['serviceCatalog'], $body['access']['token']['id'])) {
             $this->useApiKeyOk = true;
         }
 

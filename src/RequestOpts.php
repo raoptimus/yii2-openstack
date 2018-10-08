@@ -2,7 +2,7 @@
 namespace raoptimus\openstack;
 
 use GuzzleHttp\Stream\StreamInterface;
-use yii\base\Component;
+use yii\base\BaseObject;
 
 /**
  * This file is part of the raoptimus/yii2-openstack library
@@ -11,7 +11,7 @@ use yii\base\Component;
  * @license https://github.com/raoptimus/yii2-openstack/blob/master/LICENSE.md
  * @link https://github.com/raoptimus/yii2-openstack
  */
-class RequestOpts extends Component
+class RequestOpts extends BaseObject
 {
     /**
      * @var string

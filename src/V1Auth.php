@@ -21,7 +21,7 @@ class V1Auth extends BaseAuth
 
     public function getCdnUrl(): string
     {
-        return $this->headers['X-CDN-Management-Url'] ?? '';
+        return $this->headers['X-CDN-Management-Url'][0] ?? '';
     }
 
     public function getRequest(Connection $c): RequestInterface
@@ -40,18 +40,18 @@ class V1Auth extends BaseAuth
                 ]
             );
         } catch (Exception $ex) {
-            throw new AuthException($ex->getMessage(), 500);
+            throw new AuthException($ex->getMessage(), HttpCode::INTERNAL_SERVER_ERROR);
         }
     }
 
-    public function response(ResponseInterface $resp): void
+    public function processResponse(ResponseInterface $resp): void
     {
         $this->headers = $resp->getHeaders();
     }
 
     public function getStorageUrl(bool $internal): string
     {
-        $storageUrl = $this->headers['X-Storage-Url'] ?? '';
+        $storageUrl = $this->headers['X-Storage-Url'][0] ?? '';
         if ($internal) {
             $newUrl = parse_url($storageUrl);
             $newUrl['host'] = 'snet-' . $newUrl['host'];
@@ -63,6 +63,6 @@ class V1Auth extends BaseAuth
 
     public function getToken(): string
     {
-        return $this->headers['X-Auth-Token'] ?? '';
+        return $this->headers['X-Auth-Token'][0] ?? '';
     }
 }
