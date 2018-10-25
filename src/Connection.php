@@ -178,7 +178,7 @@ class Connection extends Component
     /**
      * @return Client
      */
-    public function getClient(): Client
+    public function getClient(): ?Client
     {
         return $this->client;
     }
