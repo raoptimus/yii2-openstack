@@ -35,6 +35,12 @@ class Connection extends Component
      */
     public $apiKey;
     /**
+     * Key for api access/password
+     *
+     * @var string
+     */
+    public $password;
+    /**
      * @var string auth server url
      */
     public $authUrl;
@@ -63,7 +69,7 @@ class Connection extends Component
      */
     public $internal = false;
     /**
-     * Name of the tenant (v2 auth only)
+     * Name of the tenant
      *
      * @var string
      */
@@ -310,8 +316,11 @@ class Connection extends Component
         }
     }
 
-    private function checkStatusCode(int $statusCode, array $errMap, string $exceptionClass = SwiftException::class): bool
-    {
+    private function checkStatusCode(
+        int $statusCode,
+        array $errMap,
+        string $exceptionClass = SwiftException::class
+    ): bool {
         if (isset($errMap[$statusCode])) {
             throw new $exceptionClass($errMap[$statusCode], $statusCode);
         }

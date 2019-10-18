@@ -30,8 +30,6 @@ class AuthTest extends BaseTestCase
 
     public function dataProviderAuthResponses(): array
     {
-        $actualResponseContent = $this->getDataContents('auth_v2.json');
-
         return [
             'v1' => [
                 '',
@@ -43,9 +41,16 @@ class AuthTest extends BaseTestCase
                 ],
             ],
             'v2' => [
-                $actualResponseContent,
+                $this->getDataContents('auth_v2.json'),
                 2,
                 [],
+            ],
+            'v3' => [
+                $this->getDataContents('auth_v3.json'),
+                3,
+                [
+                    'X-Subject-Token' => 'AUTH_tk4602560647c640de86924e2f28716b46',
+                ],
             ],
         ];
     }

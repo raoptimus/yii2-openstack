@@ -1,6 +1,7 @@
 <?php
 namespace raoptimus\openstack;
 
+use DateTime;
 use yii\base\Component;
 
 /**
@@ -14,8 +15,8 @@ use yii\base\Component;
  * @property Container container
  * @property Connection connection
  * @property string hash
- * @property \DateTime lastModified
- * @property \DateTime createdAt
+ * @property DateTime lastModified
+ * @property DateTime createdAt
  * @property string mimeType
  * @property int size
  */
@@ -194,8 +195,8 @@ class File extends Component
         return [
             'name' => $this->name,
             'hash' => $this->hash,
-            'lastModified' => $this->lastModified->format(\DateTime::RFC822),
-            'createdAt' => $this->createdAt->format(\DateTime::RFC822),
+            'lastModified' => $this->lastModified->format(DateTime::RFC822),
+            'createdAt' => $this->createdAt->format(DateTime::RFC822),
             'size' => $this->size,
         ];
     }
@@ -215,12 +216,12 @@ class File extends Component
         $this->mimeType = $v;
     }
 
-    protected function setLastModified(\DateTime $v): void
+    protected function setLastModified(DateTime $v): void
     {
         $this->lastModified = $v;
     }
 
-    protected function setCreatedAt(\DateTime $v): void
+    protected function setCreatedAt(DateTime $v): void
     {
         $this->createdAt = $v;
     }
@@ -243,9 +244,9 @@ class File extends Component
     private function parseHeaders(array $h): void
     {
         $this->hash = $h['Etag'][0];
-        $this->lastModified = new \DateTime($h['Last-Modified'][0]);
+        $this->lastModified = new DateTime($h['Last-Modified'][0]);
         $this->mimeType = $h['Content-Type'][0];
-        $this->createdAt = new \DateTime($h['Date'][0]);
+        $this->createdAt = new DateTime($h['Date'][0]);
         $this->size = $h['Content-Length'][0];
     }
 
