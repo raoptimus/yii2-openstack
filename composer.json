@@ -24,12 +24,12 @@
         "issues": "https://github.com/raoptimus/yii2-openstack/issues",
         "source": "https://github.com/raoptimus/yii2-openstack"
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "require": {
         "php": ">=7.1.0",
         "ext-fileinfo": "*",
         "yiisoft/yii2": "^2.0.14",
-        "guzzlehttp/guzzle": "5.3.*"
+        "guzzlehttp/guzzle": "~6.0"
     },
     "require-dev": {
         "roave/security-advisories": "dev-master",

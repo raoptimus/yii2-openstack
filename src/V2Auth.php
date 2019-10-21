@@ -1,9 +1,10 @@
 <?php
 namespace raoptimus\openstack;
 
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Message\RequestInterface;
-use GuzzleHttp\Message\ResponseInterface;
+use GuzzleHttp\Psr7\Request;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use yii\helpers\Json;
 
 /**
  * This file is part of the raoptimus/yii2-openstack library
@@ -41,8 +42,9 @@ class V2Auth extends BaseAuth
      */
     private $authResponse;
 
-    public function __construct(bool $useApiKey)
+    public function __construct(bool $useApiKey, Connection $connection, Options $options)
     {
+        parent::__construct($connection, $options);
         $this->useApiKey = $useApiKey;
     }
 
@@ -51,9 +53,9 @@ class V2Auth extends BaseAuth
         return $this->getEndpointUrl('rax:object-cdn', false);
     }
 
-    public function getRequest(Connection $c): RequestInterface
+    public function createRequest(): RequestInterface
     {
-        $this->region = $c->region;
+        $this->region = $this->options->region;
 
         if ($this->notFirst && !$this->useApiKeyOk) {
             $this->useApiKey = !$this->useApiKey;
@@ -61,31 +63,17 @@ class V2Auth extends BaseAuth
 
         $this->notFirst = true;
         $body = (object)($this->useApiKey
-            ? $this->getAuthRequestRackspace($c)
-            : $this->getAuthRequest($c));
-        $authUrl = rtrim($c->authUrl, '/') . '/tokens';
+            ? $this->buildRequestRackspaceBody()
+            : $this->buildRequestBody());
+        $authUrl = $this->options->authUrl . '/tokens';
+        $headers = ['Content-Type' => 'application/json'];
 
-        try {
-            return $c->getClient()->createRequest(
-                'POST',
-                $authUrl,
-                [
-                    'json' => $body,
-                    'timeout' => $c->timeout,
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                        'User-Agent' => $c->userAgent,
-                    ],
-                ]
-            );
-        } catch (RequestException $ex) {
-            throw new AuthException($ex->getMessage(), $ex->getCode());
-        }
+        return new Request(HttpMethod::POST, $authUrl, $headers, Json::encode($body));
     }
 
-    public function getStorageUrl(bool $internal): string
+    public function getStorageUrl(): string
     {
-        return $this->getEndpointUrl('object-store', $internal);
+        return $this->getEndpointUrl('object-store', $this->options->internal);
     }
 
     public function getToken(): string
@@ -95,7 +83,8 @@ class V2Auth extends BaseAuth
 
     public function processResponse(ResponseInterface $resp): void
     {
-        $body = $resp->json();
+        $content = $resp->getBody()->getContents();
+        $body = Json::decode($content);
 
         if ($body && isset($body['access']['serviceCatalog'], $body['access']['token']['id'])) {
             $this->useApiKeyOk = true;
@@ -104,30 +93,30 @@ class V2Auth extends BaseAuth
         $this->authResponse = $body;
     }
 
-    private function getAuthRequest(Connection $c): array
+    private function buildRequestBody(): array
     {
         return [
             'auth' => [
                 'passwordCredentials' => [
-                    'username' => $c->username,
-                    'password' => $c->apiKey,
+                    'username' => $this->options->username,
+                    'password' => $this->options->apiKey,
                 ],
-                'tenantName' => $c->tenant,
-                'tenantId' => $c->tenantId,
+                'tenantName' => $this->options->tenant,
+                'tenantId' => $this->options->tenantId,
             ],
         ];
     }
 
-    private function getAuthRequestRackspace(Connection $c): array
+    private function buildRequestRackspaceBody(): array
     {
         return [
             'auth' => [
                 'apiKeyCredentials' => [
-                    'username' => $c->username,
-                    'apiKey' => $c->apiKey,
+                    'username' => $this->options->username,
+                    'apiKey' => $this->options->apiKey,
                 ],
-                'tenantName' => $c->tenant,
-                'tenantId' => $c->tenantId,
+                'tenantName' => $this->options->tenant,
+                'tenantId' => $this->options->tenantId,
             ],
         ];
     }

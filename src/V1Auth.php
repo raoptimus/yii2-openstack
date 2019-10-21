@@ -1,9 +1,9 @@
 <?php
 namespace raoptimus\openstack;
 
-use GuzzleHttp\Message\RequestInterface;
-use GuzzleHttp\Message\ResponseInterface;
-use PHPUnit\Runner\Exception;
+use GuzzleHttp\Psr7\Request;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * This file is part of the raoptimus/yii2-openstack library
@@ -24,24 +24,14 @@ class V1Auth extends BaseAuth
         return $this->headers['X-CDN-Management-Url'][0] ?? '';
     }
 
-    public function getRequest(Connection $c): RequestInterface
+    public function createRequest(): RequestInterface
     {
-        try {
-            return $c->getClient()->createRequest(
-                'GET',
-                $c->authUrl,
-                [
-                    'timeout' => $c->timeout,
-                    'headers' => [
-                        'User-Agent' => $c->userAgent,
-                        'X-Auth-Key' => $c->apiKey,
-                        'X-Auth-User' => $c->username,
-                    ],
-                ]
-            );
-        } catch (Exception $ex) {
-            throw new AuthException($ex->getMessage(), HttpCode::INTERNAL_SERVER_ERROR);
-        }
+        $headers = [
+            'X-Auth-Key' => $this->options->apiKey,
+            'X-Auth-User' => $this->options->username,
+        ];
+
+        return new Request(HttpMethod::GET, $this->options->authUrl, $headers);
     }
 
     public function processResponse(ResponseInterface $resp): void
@@ -49,13 +39,14 @@ class V1Auth extends BaseAuth
         $this->headers = $resp->getHeaders();
     }
 
-    public function getStorageUrl(bool $internal): string
+    public function getStorageUrl(): string
     {
         $storageUrl = $this->headers['X-Storage-Url'][0] ?? '';
-        if ($internal) {
+
+        if ($this->options->internal) {
             $newUrl = parse_url($storageUrl);
             $newUrl['host'] = 'snet-' . $newUrl['host'];
-            $storageUrl = Connection::buildUrl($newUrl);
+            $storageUrl = HttpHelper::buildUrl($newUrl);
         }
 
         return $storageUrl;

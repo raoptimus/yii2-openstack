@@ -87,7 +87,7 @@ class Container extends Component
         $containers = [];
         $opts = new RequestOpts(
             [
-                'operation' => 'GET',
+                'method' => 'GET',
                 'parameters' => ['format' => 'json'],
                 'headers' => $headers,
                 'errorMap' => self::CONTAINER_ERROR_MAP,
@@ -105,8 +105,8 @@ class Container extends Component
     }
 
     /**
-     * @param $sourceFilename string object name
-     * @param $targetFilename string|resource local file name
+     * @param string $sourceFilename object name
+     * @param string|resource $targetFilename local file name
      * @param array|null $headers
      *
      * @return File
@@ -123,8 +123,8 @@ class Container extends Component
     }
 
     /**
-     * @param $sourceFilename resource|string local file name
-     * @param $targetFilename string object name
+     * @param resource|string $sourceFilename local file name
+     * @param string $targetFilename object name
      * @param array $headers
      *
      * @return File
@@ -219,7 +219,7 @@ class Container extends Component
         return new RequestOpts(
             [
                 'container' => $this->name,
-                'operation' => $operation,
+                'method' => $operation,
                 'errorMap' => self::CONTAINER_ERROR_MAP,
                 'headers' => $headers,
             ]

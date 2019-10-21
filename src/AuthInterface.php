@@ -1,8 +1,8 @@
 <?php
 namespace raoptimus\openstack;
 
-use GuzzleHttp\Message\RequestInterface;
-use GuzzleHttp\Message\ResponseInterface;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * This file is part of the raoptimus/yii2-openstack library
@@ -13,13 +13,19 @@ use GuzzleHttp\Message\ResponseInterface;
  */
 interface AuthInterface
 {
-    public function getRequest(Connection $c): RequestInterface;
+    public function createRequest(): RequestInterface;
 
     public function processResponse(ResponseInterface $resp): void;
 
-    public function getStorageUrl(bool $internal): string;
+    public function getStorageUrl(): string;
 
     public function getToken(): string;
 
     public function getCdnUrl(): string;
+
+    public function isAuthenticated(): bool;
+
+    public function authenticate(): void;
+
+    public function refresh(): void;
 }

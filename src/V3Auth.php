@@ -2,9 +2,10 @@
 
 namespace raoptimus\openstack;
 
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Message\RequestInterface;
-use GuzzleHttp\Message\ResponseInterface;
+use GuzzleHttp\Psr7\Request;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use yii\helpers\Json;
 
 /**
  * This file is part of the raoptimus/yii2-openstack library
@@ -28,40 +29,27 @@ class V3Auth extends BaseAuth
      */
     private $headers;
 
-    public function getRequest(Connection $c): RequestInterface
+    public function createRequest(): RequestInterface
     {
-//        $this->region = $c->region;
+        $body = (object)$this->buildRequestBody();
+        $authUrl = $this->options->authUrl . '/auth/tokens';
+        $headers = [
+            'Content-Type' => 'application/json',
+        ];
 
-        $body = (object)$this->getAuthRequest($c);
-        $authUrl = rtrim($c->authUrl, '/') . '/auth/tokens';
-
-        try {
-            return $c->getClient()->createRequest(
-                'POST',
-                $authUrl,
-                [
-                    'json' => $body,
-                    'timeout' => $c->timeout,
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                        'User-Agent' => $c->userAgent,
-                    ],
-                ]
-            );
-        } catch (RequestException $ex) {
-            throw new AuthException($ex->getMessage(), $ex->getCode());
-        }
+        return new Request(HttpMethod::POST, $authUrl, $headers, Json::encode($body));
     }
 
     public function processResponse(ResponseInterface $resp): void
     {
         $this->headers = $resp->getHeaders();
-        $this->authResponse = $resp->json();
+        $content = $resp->getBody()->getContents();
+        $this->authResponse = Json::decode($content);
     }
 
-    public function getStorageUrl(bool $internal): string
+    public function getStorageUrl(): string
     {
-        $interface = $internal ? 'internal' : 'public';
+        $interface = $this->options->internal ? 'internal' : 'public';
 
         return $this->getEndpointUrl('object-store', $interface);
     }
@@ -76,7 +64,7 @@ class V3Auth extends BaseAuth
         return '';
     }
 
-    private function getAuthRequest(Connection $c): array
+    private function buildRequestBody(): array
     {
         return [
             'auth' => [
@@ -84,11 +72,11 @@ class V3Auth extends BaseAuth
                     'methods' => ['password'],
                     'password' => [
                         'user' => [
-                            'name' => $c->username,
-                            'password' => $c->password,
+                            'name' => $this->options->username,
+                            'password' => $this->options->password,
                             'domain' => [
-                                'id' => $c->domainId,
-                                'name' => $c->domain,
+                                'id' => $this->options->domainId,
+                                'name' => $this->options->domain,
                             ],
                         ],
                     ],
@@ -96,9 +84,9 @@ class V3Auth extends BaseAuth
                 'scope' => [
                     'project' => [
                         'domain' => [
-                            'id' => $c->domainId,
+                            'id' => $this->options->domainId,
                         ],
-                        'name' => $c->tenant,
+                        'name' => $this->options->tenant,
                     ],
                 ],
             ],

@@ -1,7 +1,7 @@
 <?php
 namespace raoptimus\openstack;
 
-use GuzzleHttp\Stream\StreamInterface;
+use Psr\Http\Message\StreamInterface;
 use yii\base\BaseObject;
 
 /**
@@ -24,7 +24,7 @@ class RequestOpts extends BaseObject
     /**
      * @var string HEAD GET POST PUT etc
      */
-    public $operation;
+    public $method;
     /**
      * @var array
      */
