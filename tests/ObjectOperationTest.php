@@ -2,9 +2,13 @@
 
 namespace raoptimus\openstack\tests;
 
-use GuzzleHttp\Stream\Stream;
+use DateTime;
 use raoptimus\openstack\HttpCode;
+use raoptimus\openstack\HttpContentType;
 
+/**
+ * @group ops
+ */
 class ObjectOperationTest extends BaseTestCase
 {
     /**
@@ -15,13 +19,13 @@ class ObjectOperationTest extends BaseTestCase
     public function testDeleteSuccess(int $version): void
     {
         $authUrl = 'https://localhost.loc:5000/v' . $version . '.0';
-        $stream = Stream::factory('');
-        $client = $this->mockHttpClient($stream, HttpCode::OK);
+        $client = $this->mockHttpClient('', HttpCode::OK);
         $connection = $this->mockConnection(
             [
-                'getClient' => $client,
+                'getHttpClient' => $client,
                 'getStorageUrl' => 'http://localhost.loc/v1/AUTH_sharedacct',
                 'authenticate' => true,
+                'getAuthToken' => '',
             ],
             [
                 'authUrl' => $authUrl,
@@ -41,14 +45,13 @@ class ObjectOperationTest extends BaseTestCase
         $sourceFilename = $this->getDataPath() . '/source.txt';
         $authUrl = 'https://localhost.loc:5000/v' . $version . '.0';
         $etag = hash_file('md5', $sourceFilename);
-        $modifiedDate = date(\DateTime::COOKIE, time() - 86400);
-        $createdAt = date(\DateTime::COOKIE);
+        $modifiedDate = date(DateTime::COOKIE, time() - 86400);
+        $createdAt = date(DateTime::COOKIE);
         $size = filesize($sourceFilename);
-        $contentType = 'text/plain';
+        $contentType = HttpContentType::TEXT;
 
-        $stream = Stream::factory('');
         $client = $this->mockHttpClient(
-            $stream,
+            '',
             HttpCode::OK,
             [
                 'Etag' => $etag,
@@ -60,9 +63,10 @@ class ObjectOperationTest extends BaseTestCase
         );
         $connection = $this->mockConnection(
             [
-                'getClient' => $client,
+                'getHttpClient' => $client,
                 'authenticate' => true,
                 'getStorageUrl' => 'http://localhost.loc/v1/AUTH_sharedacct',
+                'getAuthToken' => '',
             ],
             [
                 'authUrl' => $authUrl,
@@ -73,8 +77,8 @@ class ObjectOperationTest extends BaseTestCase
             ->getContainer('test')
             ->pushObject($sourceFilename, 'target');
 
-        self::assertEquals($pushedFile->createdAt, new \DateTime($createdAt));
-        self::assertEquals($pushedFile->lastModified, new \DateTime($modifiedDate));
+        self::assertEquals($pushedFile->createdAt, new DateTime($createdAt));
+        self::assertEquals($pushedFile->lastModified, new DateTime($modifiedDate));
         self::assertEquals($pushedFile->size, $size);
         self::assertEquals($pushedFile->mimeType, $contentType);
         self::assertEquals($pushedFile->hash, $etag);
@@ -91,14 +95,15 @@ class ObjectOperationTest extends BaseTestCase
         $sourceFilename = $this->getDataPath() . '/source.txt';
         $headers = $this->getHeaderByFilename($sourceFilename);
 
-        $stream = new Stream(fopen($sourceFilename, 'rb'));
+        $stream = fopen($sourceFilename, 'rb');
         $client = $this->mockHttpClient($stream, HttpCode::OK, $headers);
         $authUrl = 'https://localhost.loc:5000/v' . $version . '.0';
         $connection = $this->mockConnection(
             [
-                'getClient' => $client,
+                'getHttpClient' => $client,
                 'authenticate' => true,
                 'getStorageUrl' => 'http://localhost.loc/v1/AUTH_sharedacct',
+                'getAuthToken' => '',
             ],
             [
                 'authUrl' => $authUrl,
@@ -122,15 +127,15 @@ class ObjectOperationTest extends BaseTestCase
         $sourceFilename = $this->getDataPath() . '/source.txt';
         $headers = $this->getHeaderByFilename($sourceFilename);
 
-        $stream = Stream::factory('');
-        $client = $this->mockHttpClient($stream, HttpCode::OK, $headers);
+        $client = $this->mockHttpClient('', HttpCode::OK, $headers);
 
         $authUrl = 'https://localhost.loc:5000/v' . $version . '.0';
         $connection = $this->mockConnection(
             [
-                'getClient' => $client,
+                'getHttpClient' => $client,
                 'authenticate' => true,
                 'getStorageUrl' => 'http://localhost.loc/v1/AUTH_sharedacct',
+                'getAuthToken' => '',
             ],
             [
                 'authUrl' => $authUrl,
@@ -149,6 +154,7 @@ class ObjectOperationTest extends BaseTestCase
         return [
             'v1' => [1],
             'v2' => [2],
+            'v3' => [3],
         ];
     }
 }

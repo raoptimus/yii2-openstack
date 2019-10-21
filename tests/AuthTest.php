@@ -2,10 +2,12 @@
 
 namespace raoptimus\openstack\tests;
 
-use GuzzleHttp\Stream\Stream;
 use raoptimus\openstack\AuthException;
 use raoptimus\openstack\HttpCode;
 
+/**
+ * @group auth
+ */
 class AuthTest extends BaseTestCase
 {
     /**
@@ -15,15 +17,14 @@ class AuthTest extends BaseTestCase
      * @param int $version
      * @param array $headers
      */
-    public function testAuth(string $actualResponseContent, int $version, array $headers): void
+    public function testAuthSuccessfully(string $actualResponseContent, int $version, array $headers): void
     {
-        $stream = Stream::factory($actualResponseContent);
-        $client = $this->mockHttpClient($stream, HttpCode::OK, $headers);
+        $client = $this->mockHttpClient($actualResponseContent, HttpCode::OK, $headers);
         $authUrl = 'https://localhost.loc:5000/v' . $version . '.0';
-        $connection = $this->mockConnection(['getClient' => $client], ['authUrl' => $authUrl]);
+
+        $connection = $this->mockConnection(['getHttpClient' => $client], ['authUrl' => $authUrl]);
         $connection->authenticate();
-        self::assertTrue($connection->authenticated());
-        self::assertEquals($connection->authVersion, $version);
+
         self::assertEquals('http://localhost.loc/v1/AUTH_sharedacct', $connection->getStorageUrl());
         self::assertEquals('AUTH_tk4602560647c640de86924e2f28716b46', $connection->getAuthToken());
     }
@@ -56,21 +57,20 @@ class AuthTest extends BaseTestCase
     }
 
     /**
+     * @group f
      * @param int $version
      * @param int $returnHttpCode
      *
-     * @throws AuthException
      * @dataProvider dataProviderVersions
      */
-    public function testFailedAuth(int $version, int $returnHttpCode): void
+    public function testAuthFailure(int $version, int $returnHttpCode): void
     {
         $this->expectException(AuthException::class);
         $this->expectExceptionCode($returnHttpCode);
 
-        $stream = Stream::factory('');
-        $client = $this->mockHttpClient($stream, $returnHttpCode);
+        $client = $this->mockHttpClient('', $returnHttpCode);
         $authUrl = 'https://localhost.loc:5000/v' . $version . '.0';
-        $connection = $this->mockConnection(['getClient' => $client], ['authUrl' => $authUrl]);
+        $connection = $this->mockConnection(['getHttpClient' => $client], ['authUrl' => $authUrl]);
         $connection->authenticate();
     }
 
@@ -78,10 +78,13 @@ class AuthTest extends BaseTestCase
     {
         return [
             'v1/401' => [1, HttpCode::UNAUTHORIZED],
-            'v2/401' => [2, HttpCode::UNAUTHORIZED],
             'v1/400' => [1, HttpCode::BAD_REQUEST],
+            'v2/401' => [2, HttpCode::UNAUTHORIZED],
             'v2/400' => [2, HttpCode::BAD_REQUEST],
             'v2/503' => [2, HttpCode::SERVICE_UNAVAILABLE],
+            'v3/401' => [3, HttpCode::UNAUTHORIZED],
+            'v3/400' => [3, HttpCode::BAD_REQUEST],
+            'v3/503' => [3, HttpCode::SERVICE_UNAVAILABLE],
         ];
     }
 }

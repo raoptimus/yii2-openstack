@@ -2,13 +2,15 @@
 
 namespace raoptimus\openstack\tests;
 
+use DateTime;
 use GuzzleHttp\Client;
-use GuzzleHttp\Message\Response;
-use GuzzleHttp\Stream\Stream;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use raoptimus\openstack\Connection;
 use raoptimus\openstack\File;
+use raoptimus\openstack\HttpContentType;
+use raoptimus\openstack\Options;
 use Yii;
 use yii\console\Application;
 use yii\helpers\FileHelper;
@@ -24,8 +26,8 @@ abstract class BaseTestCase extends TestCase
 {
     protected static function assertFileStatEquals(File $file, array $headers): void
     {
-        self::assertEquals($file->createdAt, new \DateTime($headers['Date']));
-        self::assertEquals($file->lastModified, new \DateTime($headers['Last-Modified']));
+        self::assertEquals($file->createdAt, new DateTime($headers['Date']));
+        self::assertEquals($file->lastModified, new DateTime($headers['Last-Modified']));
         self::assertEquals($file->size, $headers['Content-Length']);
         self::assertEquals($file->mimeType, $headers['Content-Type']);
         self::assertEquals($file->hash, $headers['Etag']);
@@ -56,7 +58,7 @@ abstract class BaseTestCase extends TestCase
             [
                 'id' => 'testapp',
                 'basePath' => __DIR__,
-                'vendorPath' => \dirname(__DIR__) . '/vendor',
+                'vendorPath' => dirname(__DIR__) . '/vendor',
                 'runtimePath' => __DIR__ . '/runtime',
             ]
         );
@@ -75,19 +77,20 @@ abstract class BaseTestCase extends TestCase
     }
 
     /**
-     * @param Stream $stream
+     * @param string|resource $stream
      * @param int $statusCode
      * @param array $headers
      *
      * @return Client|MockObject
      */
-    protected function mockHttpClient(Stream $stream, int $statusCode, array $headers = [])
+    protected function mockHttpClient($stream, int $statusCode, array $headers = [])
     {
         $response = new Response($statusCode, $headers, $stream, []);
 
-        $client = $this->getMockBuilder(Client::class)
-                       ->setMethods(['send'])
-                       ->getMock();
+        $client = $this
+            ->getMockBuilder(Client::class)
+            ->setMethods(['send'])
+            ->getMock();
         $client->method('send')->willReturn($response);
 
         return $client;
@@ -101,10 +104,11 @@ abstract class BaseTestCase extends TestCase
      */
     protected function mockConnection(array $methods, array $config)
     {
-        $cn = $this->getMockBuilder(Connection::class)
-                   ->setConstructorArgs([$config])
-                   ->setMethods(array_keys($methods))
-                   ->getMock();
+        $cn = $this
+            ->getMockBuilder(Connection::class)
+            ->setConstructorArgs([new Options($config)])
+            ->setMethods(array_keys($methods))
+            ->getMock();
         foreach ($methods as $method => $value) {
             $cn->method($method)->willReturn($value);
         }
@@ -120,14 +124,13 @@ abstract class BaseTestCase extends TestCase
     protected function getHeaderByFilename(string $filename): array
     {
         $etag = hash_file('md5', $filename);
-        $modifiedDate = date(\DateTime::COOKIE, filemtime($filename));
-        $createdAt = date(\DateTime::COOKIE, filectime($filename));
+        $modifiedDate = date(DateTime::COOKIE, filemtime($filename));
+        $createdAt = date(DateTime::COOKIE, filectime($filename));
         $size = filesize($filename);
-        $contentType = 'text/plain';
 
         return [
             'Etag' => $etag,
-            'Content-Type' => $contentType,
+            'Content-Type' => HttpContentType::TEXT,
             'Content-Length' => $size,
             'Last-Modified' => $modifiedDate,
             'Date' => $createdAt,

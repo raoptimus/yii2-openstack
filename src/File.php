@@ -40,7 +40,7 @@ class File extends Component
             return $file;
         }
 
-        throw new SwiftException('Can\'t read the file ' . var_export($file, true));
+        throw new SwiftException('Can`t read the file ' . var_export($file, true));
     }
 
     /**
@@ -52,7 +52,7 @@ class File extends Component
     public function delete(array $headers = null): bool
     {
         try {
-            $this->connection->call($this->getRequestOpts('DELETE', $headers));
+            $this->connection->call($this->createRequestOpts(HttpMethod::DELETE, $headers));
         } catch (SwiftException $ex) {
             if ($ex->getCode() === HttpCode::NOT_FOUND) {
                 return true; //already removed
@@ -71,7 +71,7 @@ class File extends Component
                 'Destination' => $dstContainerName ?? $this->container->name . '/' . $dstFilename,
             ]
         );
-        $this->connection->call($this->getRequestOpts('COPY', $headers));
+        $this->connection->call($this->createRequestOpts(HttpMethod::COPY, $headers));
 
         return $this;
     }
@@ -99,7 +99,7 @@ class File extends Component
      */
     public function update(?array $headers = null): void
     {
-        $this->connection->call($this->getRequestOpts('POST', $headers));
+        $this->connection->call($this->createRequestOpts(HttpMethod::POST, $headers));
     }
 
     /**
@@ -111,7 +111,7 @@ class File extends Component
     public function pull($targetFilename, ?array $headers = null): File
     {
         $fs = self::getFileHandler($targetFilename, false);
-        $opts = $this->getRequestOpts('GET', $headers);
+        $opts = $this->createRequestOpts(HttpMethod::GET, $headers);
         $resp = $this->connection->call($opts);
         stream_copy_to_stream($resp->getBody()->detach(), $fs);
         fclose($fs);
@@ -164,7 +164,7 @@ class File extends Component
             'Etag' => $hash,
         ];
         $headers = array_merge($headers ?? [], $extraHeaders);
-        $opts = $this->getRequestOpts('PUT', $headers);
+        $opts = $this->createRequestOpts(HttpMethod::PUT, $headers);
         $opts->body = $fs;
         $this->connection->call($opts);
 
@@ -177,7 +177,7 @@ class File extends Component
     public function pullStat(?array $headers = null): File
     {
         try {
-            $resp = $this->connection->call($this->getRequestOpts('HEAD', $headers));
+            $resp = $this->connection->call($this->createRequestOpts(HttpMethod::HEAD, $headers));
             $h = $resp->getHeaders();
             $this->parseHeaders($h);
 
@@ -250,11 +250,11 @@ class File extends Component
         $this->size = $h['Content-Length'][0];
     }
 
-    private function getRequestOpts(string $operation, array $headers = null): RequestOpts
+    private function createRequestOpts(string $method, array $headers = null): RequestOpts
     {
         return new RequestOpts(
             [
-                'operation' => $operation,
+                'method' => $method,
                 'container' => $this->container->name,
                 'objectName' => $this->name,
                 'headers' => $headers,

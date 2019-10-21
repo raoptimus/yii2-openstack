@@ -12,7 +12,7 @@ use yii\base\Exception;
  */
 class SwiftException extends Exception
 {
-    public function getName()
+    public function getName(): string
     {
         return 'SwiftException';
     }

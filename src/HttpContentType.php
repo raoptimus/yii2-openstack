@@ -1,4 +1,5 @@
 <?php
+
 namespace raoptimus\openstack;
 
 /**
@@ -8,10 +9,8 @@ namespace raoptimus\openstack;
  * @license https://github.com/raoptimus/yii2-openstack/blob/master/LICENSE.md
  * @link https://github.com/raoptimus/yii2-openstack
  */
-class AuthException extends SwiftException
+class HttpContentType
 {
-    public function getName(): string
-    {
-        return 'SwiftAuthException';
-    }
+    public const TEXT = 'text/plain';
+    public const JSON = 'application/json';
 }

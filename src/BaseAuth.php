@@ -1,6 +1,8 @@
 <?php
 namespace raoptimus\openstack;
 
+use GuzzleHttp\Exception\RequestException;
+
 /**
  * This file is part of the raoptimus/yii2-openstack library
  *
@@ -10,35 +12,60 @@ namespace raoptimus\openstack;
  */
 abstract class BaseAuth implements AuthInterface
 {
-    public static function create(Connection $c): AuthInterface
+    private const AUTH_ERROR_MAP = [
+        HttpCode::BAD_REQUEST => HttpCode::CODE_DESC_MAP[HttpCode::BAD_REQUEST],
+        HttpCode::UNAUTHORIZED => HttpCode::CODE_DESC_MAP[HttpCode::UNAUTHORIZED],
+        HttpCode::FORBIDDEN => HttpCode::CODE_DESC_MAP[HttpCode::FORBIDDEN],
+    ];
+
+    /** @var Connection */
+    protected $connection;
+    /** @var Options */
+    protected $options;
+    /** @var bool */
+    private $isActive = false;
+
+    public function __construct(Connection $connection, Options $options)
     {
-        if ($c->authVersion <= 0) {
-            if (stripos($c->authUrl, 'v3') !== false) {
-                $c->authVersion = 3;
-            } else if (stripos($c->authUrl, 'v2') !== false) {
-                $c->authVersion = 2;
-            } else if (stripos($c->authUrl, 'v1') !== false) {
-                $c->authVersion = 1;
-            } else {
-                throw new AuthException(
-                    'Can\'t find AuthVersion in AuthUrl - set explicitly',
-                    HttpCode::INTERNAL_SERVER_ERROR
-                );
-            }
+        $this->connection = $connection;
+        $this->options = $options;
+    }
+
+    public function isAuthenticated(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function authenticate(): void
+    {
+        if ($this->isActive) {
+            return;
         }
 
-        switch ($c->authVersion) {
-            case 1:
-                return new V1Auth();
-            case 2:
-                return new V2Auth(strlen($c->apiKey) >= 32);
-            case 3:
-                return new V3Auth();
-            default:
-                throw new AuthException(
-                    sprintf('Auth Version %d not supported', $c->authVersion),
-                    HttpCode::INTERNAL_SERVER_ERROR
-                );
+        try {
+            $req = $this->createRequest();
+            $httpClient = $this->connection->getHttpClient();
+            $resp = $httpClient->send($req);
+            $this->processResponse($resp);
+            HttpHelper::checkStatusCode(
+                $resp->getStatusCode(),
+                self::AUTH_ERROR_MAP,
+                AuthException::class
+            );
+            if (!empty($this->getStorageUrl()) && !empty($this->getToken())) {
+                $this->isActive = true;
+
+                return;
+            }
+            throw new AuthException('Response haven`t got a storage url or auth token');
+        } catch (RequestException $ex) {
+            $msg = self::AUTH_ERROR_MAP[$ex->getCode()] ?? $ex->getMessage();
+            throw new AuthException($msg, $ex->getCode());
         }
+    }
+
+    public function refresh(): void
+    {
+        $this->isActive = false;
     }
 }
