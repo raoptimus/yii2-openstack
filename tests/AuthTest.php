@@ -58,6 +58,7 @@ class AuthTest extends BaseTestCase
 
     /**
      * @group f
+     *
      * @param int $version
      * @param int $returnHttpCode
      *

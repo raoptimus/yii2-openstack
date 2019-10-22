@@ -39,6 +39,7 @@ class Connection
         $optionsCopy->setDefaults();
         $this->options = $optionsCopy;
         $this->auth = AuthFactory::create($this, $optionsCopy);
+        $this->init();
     }
 
     public function init(): void

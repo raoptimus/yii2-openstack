@@ -20,32 +20,17 @@ composer require raoptimus/yii2-openstack
 Configuration
 
 ```php
-return [
-    //....
-    'components' => 
-        'swift' => [
-            'class' => raoptimus\openstack\Connection::class,
+$swift = new raoptimus\openstack\Connection(
+    new raoptimus\openstack\Options(
+        [
             'authUrl' => 'https://somedomain.com:5000/v2.0',
             'username' => '',
             'apiKey' => '',
             'tenant' => '',
             'domain' => '',
             'domainId' => '',
-        ],
-];
-```
-
-```php
-$swift = new raoptimus\openstack\Connection(
-    [
-        'class' => raoptimus\openstack\Connection::class,
-        'authUrl' => 'https://somedomain.com:5000/v2.0',
-        'username' => '',
-        'apiKey' => '',
-        'tenant' => '',
-        'domain' => '',
-        'domainId' => '',
-    ]
+        ]
+    )
 );
 $container = $swift->getContainer('name of container');
 ```
