@@ -14,7 +14,7 @@ use yii\base\InvalidConfigException;
  */
 class Options extends Component
 {
-    private const DEFAULT_USERAGENT = 'github.com/raoptimus/yii2-openstack/1.0.4';
+    public const DEFAULT_USERAGENT = 'github.com/raoptimus/yii2-openstack/1.0.4';
     private const DEFAULT_RETRIES = 3;
 
     /**

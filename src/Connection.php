@@ -49,6 +49,7 @@ class Connection
                 'handler' => new StreamHandler(),
                 'timeout' => $this->options->timeout,
                 'verify' => false,
+                'http_errors' => true,
                 'headers' => [
                     'User-Agent' => $this->options->userAgent,
                 ],
@@ -104,13 +105,24 @@ class Connection
                 HttpHelper::checkStatusCode($resp->getStatusCode(), $opts->errorMap);
 
                 return $resp;
+            } catch (SwiftException $ex) {
+                if ($retries > 1) {
+                    if ($ex->getCode() === HttpCode::UNAUTHORIZED) {
+                        $this->auth->refresh();
+                        continue;
+                    }
+                    if (in_array($opts->method, [HttpMethod::HEAD, HttpMethod::GET])) {
+                        continue;
+                    }
+                }
+                throw $ex;
             } catch (RequestException $ex) {
                 if ($retries > 1) {
                     if ($ex->getCode() === HttpCode::UNAUTHORIZED) {
                         $this->auth->refresh();
                         continue;
                     }
-                    if (in_array($opts->method, [HttpMethod::HEAD, HttpMethod::GET], true) && $retries - 1 > 0) {
+                    if (in_array($opts->method, [HttpMethod::HEAD, HttpMethod::GET])) {
                         continue;
                     }
                 }

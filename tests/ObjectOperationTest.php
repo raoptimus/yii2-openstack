@@ -5,12 +5,35 @@ namespace raoptimus\openstack\tests;
 use DateTime;
 use raoptimus\openstack\HttpCode;
 use raoptimus\openstack\HttpContentType;
+use raoptimus\openstack\SwiftException;
 
 /**
  * @group ops
  */
 class ObjectOperationTest extends BaseTestCase
 {
+    public function testThrowRequestException(): void
+    {
+        //todo must be RequestException
+        $this->expectException(SwiftException::class);
+        $this->expectExceptionCode(HttpCode::UNAUTHORIZED);
+        $authUrl = 'https://localhost.loc:5000/v3.0';
+        $client = $this->mockHttpClient('', HttpCode::UNAUTHORIZED);
+        $connection = $this->mockConnection(
+            [
+                'getHttpClient' => $client,
+                'getStorageUrl' => 'http://localhost.loc/v1/AUTH_sharedacct',
+                'authenticate' => true,
+                'getAuthToken' => '',
+            ],
+            [
+                'authUrl' => $authUrl,
+            ]
+        );
+        $result = $connection->getContainer('test')->deleteObject('filename');
+        self::assertFalse($result);
+    }
+
     /**
      * @dataProvider dataProviderVersions
      *

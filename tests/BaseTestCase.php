@@ -4,6 +4,7 @@ namespace raoptimus\openstack\tests;
 
 use DateTime;
 use GuzzleHttp\Client;
+use GuzzleHttp\Handler\StreamHandler;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
